@@ -1,0 +1,144 @@
+
+import heapq
+import math
+
+# 8 possible moves (horizontal, vertical, diagonal)
+MOVES = [(-1, -1), (-1, 0), (-1, 1),
+         (0, -1),          (0, 1),
+         (1, -1),  (1, 0), (1, 1)]
+
+# Heuristic (Euclidean distance)
+def heuristic(a, b):
+    return math.sqrt((a[0] - b[0])**2 + (a[1] - b[1])**2)
+
+# Reconstruct path from parent dictionary
+def reconstruct_path(parent, end):
+    path = [end]
+    while end in parent:
+        end = parent[end]
+        path.append(end)
+    path.reverse()
+    return path
+
+# ----------------------------
+# Best First Search (Greedy)
+# ----------------------------
+def best_first_search(grid):
+    n = len(grid)
+    start, goal = (0, 0), (n-1, n-1)
+
+    if grid[0][0] == 1 or grid[n-1][n-1] == 1:
+        return -1, []
+
+    OPEN = [(heuristic(start, goal), start)]  # (h, node)
+    parent = {}
+    visited = set()
+
+    while OPEN:
+        _, node = heapq.heappop(OPEN)
+
+        if node == goal:
+            path = reconstruct_path(parent, node)
+            return len(path), path
+
+        if node in visited:
+            continue
+        visited.add(node)
+
+        x, y = node
+        for dx, dy in MOVES:
+            nx, ny = x + dx, y + dy
+            if 0 <= nx < n and 0 <= ny < n and grid[nx][ny] == 0:
+                neighbor = (nx, ny)
+                if neighbor not in visited:
+                    parent[neighbor] = node
+                    heapq.heappush(OPEN, (heuristic(neighbor, goal), neighbor))
+
+    return -1, []
+
+# ----------------------------
+# A* Search
+# ----------------------------
+
+def a_star(grid):
+    n = len(grid)
+    start, goal = (0, 0), (n-1, n-1)
+
+    if grid[0][0] == 1 or grid[n-1][n-1] == 1:
+        return -1, []
+
+    OPEN = [(heuristic(start, goal), 0, start)]  # (f, g, node)
+    parent = {}
+    g = {start: 0}
+    visited = set()
+
+    while OPEN:
+        f, g_curr, node = heapq.heappop(OPEN)
+
+        if node == goal:
+            path = reconstruct_path(parent, node)
+            return len(path), path
+
+        if node in visited:
+            continue
+        visited.add(node)
+
+        x, y = node
+        for dx, dy in MOVES:
+            nx, ny = x + dx, y + dy
+            if 0 <= nx < n and 0 <= ny < n and grid[nx][ny] == 0:
+                neighbor = (nx, ny)
+                tentative_g = g_curr + 1
+                if tentative_g < g.get(neighbor, float('inf')):
+                    parent[neighbor] = node
+                    g[neighbor] = tentative_g
+                    f = tentative_g + heuristic(neighbor, goal)
+                    heapq.heappush(OPEN, (f, tentative_g, neighbor))
+
+    return -1, []
+
+# ----------------------------
+# Example Runs + Comparison
+# ----------------------------
+if __name__ == "__main__":
+    grids = [
+        [[0, 1],
+         [1, 0]],
+
+        [[0, 0, 0],
+         [1, 1, 0],
+         [1, 1, 0]],
+
+        [[1, 0, 0],
+         [1, 1, 0],
+         [1, 1, 0]]
+    ]
+
+    for i, grid in enumerate(grids, 1):
+        print(f"\nExample {i}:")
+        bfs_len, bfs_path = best_first_search(grid)
+        print(f"Best First Search  →  Path length: {bfs_len}, Path: {bfs_path if bfs_len!=-1 else ''}")
+        a_len, a_path = a_star(grid)
+        print(f"A* Search          →  Path length: {a_len}, Path: {a_path if a_len!=-1 else ''}")
+
+    # ----------------------------
+    # Comparison
+    # ----------------------------
+    print("\nComparison:")
+    print("Best First Search (Greedy) uses only the heuristic to guide its search. It is faster in some cases, but may not find the shortest path, as it ignores the actual cost so far.")
+    print("A* Search combines the cost so far (g) and the heuristic (h). This ensures optimality if the heuristic is admissible. It usually explores more nodes than Best First Search but guarantees the shortest path length when a path exists.")
+Example 1:
+Best First Search  →  Path length: 2, Path: [(0, 0), (1, 1)]
+A* Search          →  Path length: 2, Path: [(0, 0), (1, 1)]
+
+Example 2:
+Best First Search  →  Path length: 4, Path: [(0, 0), (0, 1), (1, 2), (2, 2)]
+A* Search          →  Path length: 4, Path: [(0, 0), (0, 1), (1, 2), (2, 2)]
+
+Example 3:
+Best First Search  →  Path length: -1, Path: 
+A* Search          →  Path length: -1, Path: 
+
+Comparison:
+Best First Search (Greedy) uses only the heuristic to guide its search. It is faster in some cases, but may not find the shortest path, as it ignores the actual cost so far.
+A* Search combines the cost so far (g) and the heuristic (h). This ensures optimality if the heuristic is admissible. It usually explores more nodes than Best First Search but guarantees the shortest path length when a path exists.
